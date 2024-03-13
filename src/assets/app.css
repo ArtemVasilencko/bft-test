@@ -1,0 +1,9 @@
+.wrapper {
+  max-width: 600px;
+  width: 100%;
+}
+
+.app-form {
+  display: flex;
+  flex-direction: column;
+}
