@@ -1,71 +1,57 @@
 import { ChangeEvent, FormEvent, useState } from 'react';
 import CustomSelect from './components/custom-select/custom-select';
 import CutomButton from './components/custom-button/custom-button';
-import { CLASSES } from './shared/classes';
-import { COUNTRIES, SELECT_LABELS, selectOptions } from './shared/select-data';
-import { filterAcommodationArr } from './utils/filter-acommodation-arr';
-import { checkDataLength } from './utils/check-data-length';
-import './assets/app.css';
 import Header from './components/header/header';
+import { CLASSES } from './shared/classes';
+import {
+  BELARUS_ACOMMODATION_TYPES,
+  CITIES,
+  COUNTRIES,
+  SOCHI_UNVERSITY_TYPES,
+  selectOptions,
+} from './shared/select-data';
+import { filterSelectOptions } from './utils/filter-select-options';
+import { transformData } from './utils/transform-data';
+import './assets/app.css';
 
 function App() {
-  const [formData, setFormData] = useState({
-    country: '',
-    city: '',
-    universityType: '',
-    accommodationType: '',
-  });
-  const { country, city, universityType } = formData;
-  const cityOptions = country
-    ? selectOptions.CITY[country as keyof (typeof selectOptions)['CITY']]
-    : [];
+  const [formData, setFormData] = useState(selectOptions);
 
   const submitForm = (e: FormEvent) => {
     e.preventDefault();
     alert(
       `Форма успешно отправлена
-      \n Страна: ${formData.country}
-      \n Город: ${formData.city}
-      \n Тип ВУЗа: ${formData.universityType}
-      \n Тип проживания: ${formData.accommodationType}`,
+      \n Страна: ${formData.COUNTRY.value}
+      \n Город: ${formData.CITY.value}
+      \n Тип ВУЗа: ${formData.UNIVERSITY_TYPE.value}
+      \n Тип проживания: ${formData.ACCOMODATION_TYPE.value}
+      \n Тип факультета: ${formData.FACULTY_TYPE.value}`,
     );
   };
 
-  const handleCountryChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    const selectedCountry = e.target.value;
-    setFormData({
-      ...formData,
-      country: selectedCountry,
-      city: '',
-      universityType: '',
-      accommodationType: '',
-    });
-  };
+  console.log(Object.values(formData).some(item => item.value.length === 0));
+  console.log(Object.values(formData));
 
-  const handleCityChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    const selectedCity = e.target.value;
-    setFormData({
-      ...formData,
-      city: selectedCity,
-      universityType: '',
-      accommodationType: '',
-    });
-  };
+  const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    const { name, value } = e.target;
 
-  const handleUniversityTypeChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    const selectedUniversityType = e.target.value;
-    setFormData({
-      ...formData,
-      universityType: selectedUniversityType,
-      accommodationType: '',
-    });
-  };
+    setFormData(prevData => {
+      const newFormData = {
+        ...prevData,
+        [name]: { ...prevData[name], value: value },
+      };
 
-  const handleAccommodationTypeChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    const selectedAccommodationType = e.target.value;
-    setFormData({
-      ...formData,
-      accommodationType: selectedAccommodationType,
+      if (prevData[name].dependentFields.length) {
+        prevData[name].dependentFields.forEach(dependentField => {
+          if (newFormData[dependentField]) {
+            newFormData[dependentField] = {
+              ...newFormData[dependentField],
+              value: '',
+            };
+          }
+        });
+      }
+      return newFormData;
     });
   };
 
@@ -74,37 +60,65 @@ function App() {
       <Header />
       <form className={CLASSES.APP_FORM}>
         <CustomSelect
-          value={country}
-          data={selectOptions.COUNTRY}
-          label={SELECT_LABELS.COUNTRY}
-          setValue={handleCountryChange}
+          name={formData.COUNTRY.name}
+          value={formData.COUNTRY.value}
+          data={transformData(formData.COUNTRY.options)}
+          label={formData.COUNTRY.label}
+          setValue={handleChange}
         />
         <CustomSelect
-          value={city}
-          data={cityOptions}
-          label={SELECT_LABELS.CITY}
-          disable={!country}
-          setValue={handleCityChange}
+          name={formData.CITY.name}
+          value={formData.CITY.value}
+          data={transformData(formData.CITY.options, formData.COUNTRY.value)}
+          label={formData.CITY.label}
+          disable={!formData.COUNTRY.value}
+          setValue={handleChange}
         />
         <CustomSelect
-          value={universityType}
-          data={selectOptions.UNIVERSITY_TYPE}
-          disable={!city}
-          label={SELECT_LABELS.UNIVERSITY}
-          setValue={handleUniversityTypeChange}
-        />
-        <CustomSelect
-          value={formData.accommodationType}
+          name={formData.UNIVERSITY_TYPE.name}
+          value={formData.UNIVERSITY_TYPE.value}
           data={
-            country === COUNTRIES.BELARUS
-              ? filterAcommodationArr(selectOptions.ACCOMODATION_TYPE)
-              : selectOptions.ACCOMODATION_TYPE
+            formData.CITY.value === CITIES.SOCHI
+              ? filterSelectOptions(
+                  transformData(formData.UNIVERSITY_TYPE.options),
+                  SOCHI_UNVERSITY_TYPES,
+                )
+              : transformData(formData.UNIVERSITY_TYPE.options)
           }
-          disable={!universityType}
-          label={SELECT_LABELS.ACCOMODATION}
-          setValue={handleAccommodationTypeChange}
+          disable={!formData.CITY.value}
+          label={formData.UNIVERSITY_TYPE.label}
+          setValue={handleChange}
         />
-        <CutomButton disable={checkDataLength(formData)} onClick={submitForm} />
+        <CustomSelect
+          name={formData.ACCOMODATION_TYPE.name}
+          value={formData.ACCOMODATION_TYPE.value}
+          data={
+            formData.COUNTRY.value === COUNTRIES.BELARUS
+              ? filterSelectOptions(
+                  transformData(formData.ACCOMODATION_TYPE.options),
+                  BELARUS_ACOMMODATION_TYPES,
+                )
+              : transformData(formData.ACCOMODATION_TYPE.options)
+          }
+          disable={!formData.UNIVERSITY_TYPE.value}
+          label={formData.ACCOMODATION_TYPE.label}
+          setValue={handleChange}
+        />
+        <CustomSelect
+          name={formData.FACULTY_TYPE.name}
+          value={formData.FACULTY_TYPE.value}
+          data={transformData(
+            formData.FACULTY_TYPE.options,
+            formData.UNIVERSITY_TYPE.value,
+          )}
+          disable={!formData.ACCOMODATION_TYPE.value}
+          label={formData.FACULTY_TYPE.label}
+          setValue={handleChange}
+        />
+        <CutomButton
+          disable={Object.values(formData).some(item => item.value.length === 0)}
+          onClick={submitForm}
+        />
       </form>
     </div>
   );
